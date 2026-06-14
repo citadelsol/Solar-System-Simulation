@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class CelestialBodyManagerScript : MonoBehaviour
@@ -143,4 +144,60 @@ public class CelestialBody
 
         spawner.GetComponent<MeshFilter>().mesh = mesh;
     } 
+
+    public static float perlin(float x, float y)
+    {
+        // For a given point, calculate the dot products from the 4 surrounding points between their distance and random vectors
+
+        //topleft: x0, y1
+        //topright: x1, y1
+        //bottomleft: x0, y0
+        //bottomright: x1, y0
+        float x0 =(int)x;
+        float x1 = x0 + 1;
+        float y0 =(int)y;
+        float y1 = y0 + 1;
+
+        float topleft = dotProductDistanceRandom(x, y, x0, y1); 
+        float topright = dotProductDistanceRandom(x, y, x1, y1);
+        float bottomleft = dotProductDistanceRandom(x, y, x0, y0);
+        float bottomright = dotProductDistanceRandom(x, y, x1, y0);
+
+        // Then linear interpolate (w/ smoothstep) the top and bottom 2
+        //try replacing with own lerp + smoothstep if doesn't work, this implementation is for clarity 
+        //(bc i am a dummy who will forget how all this works) 
+        //formula: (a1 - a0) * (3.0 - w * 2.0) * w * w + a0; 
+        float top = Mathf.Lerp(topleft, topright, Mathf.SmoothStep(0, 1, x - x0));
+        float bottom = Mathf.Lerp(bottomleft, bottomright, Mathf.SmoothStep(0, 1, x - x0));
+
+        // Then linear interpolate (w/ smoothstep) the 2 resulting numbers to get the value 
+        return Mathf.Lerp(bottom, top, Mathf.SmoothStep(0, 1, y - y0));                           
+    }
+
+    public static float perlin(float x, float y, float z)
+    {
+        float xy = perlin(x, y);
+        float yz = perlin(y, z);
+        float xz = perlin(x, z);
+        float yx = perlin(y, x);
+        float zy = perlin(z, y);
+        float zx = perlin(z, x);
+
+        return (xy + yz + xz + yx + zy + zx) % 6;
+    }
+
+    private static float dotProductDistanceRandom(float x, float y, float cx, float cy)
+    {
+        //here goes the line for the random vectors (buncha random bs -- might not work)
+        double angle = (cx * 49632 + cy * 325176 + 12345) % (2 * Math.PI);
+        double rx = Math.Cos(angle);
+        double ry = Math.Sin(angle);
+
+        //and here goes the distance vectors
+        float dx = x - cx;
+        float dy = y - cy;
+
+        // Dot product formula (algebraic) : a.x * b.x + a.y * b.y for 2d
+        return dx * (float)rx + dy * (float)ry;
+    }
 }
